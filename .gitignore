@@ -6,3 +6,4 @@ data/vehicles_cleaned.csv
 data/crashes_cleaned.csv
 .DS_Store
 data/people_cleaned.csv
+data/crashes_cleaned_binned.csv
