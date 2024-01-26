@@ -6,7 +6,7 @@ import warnings
 warnings.filterwarnings('ignore')
 
 # Connect to Chicago API
-crashes = pd.read_csv('../data/crashes_crashes.csv')
+crashes = pd.read_csv('data/crashes_crashes.csv')
 
 conn = Socrata("data.cityofchicago.org", None)
 
