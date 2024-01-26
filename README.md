@@ -35,7 +35,7 @@ distribution image here:<img src = '/images/business_problem.png'>
 
 * Based off this model the most important features were as follows:
 
-Feature importance image here:
+<img src = '/images/feature_importance.png'>
 
 
 Our recommendations are the following:
