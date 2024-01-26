@@ -7,18 +7,26 @@ warnings.filterwarnings('ignore')
 
 # Connect to Chicago API
 crashes = pd.read_csv('data/crashes_crashes.csv')
-
+print('accessed local dataset')
 conn = Socrata("data.cityofchicago.org", None)
 
 results = conn.get("85ca-t3if", limit=2000, where = "crash_date > '2024-01-19T02:02:00.000'")
-
+print('API results retrieved')
 # Convert to pandas DataFrame
 api_df = pd.DataFrame.from_records(results)
-
+print('DF HEAD:')
+print(api_df.he ad())
 api_df.columns = api_df.columns.str.upper()
 
 shared_cols = list(set(api_df.columns).intersection(set(crashes.columns)))
 
+api_cols = set(api_df.columns)
+dataset_cols = set(crashes.columns)
+
+print(f"""
+        In API, not in dataset: {api_cols - dataset_cols}
+        In dataset, not in API: {dataset_cols - api_cols}
+       """)
 # Binning target classes
 api_df = api_df.loc[:, shared_cols]
 
@@ -50,9 +58,9 @@ binning_list = [breaking_laws_list, bad_driving_list, distraction_list, drinking
 value_list = ['BREAKING LAW', 'BAD DRIVING', 'DISTRACTION INSIDE VEHICLE', 'DRINKING/DRUGS', 'OUTSIDE FACTORS', 'OTHER']
 
 
-
 for group, value in zip(binning_list, value_list):
     crashes_prime_cause['PRIM_CONTRIBUTORY_CAUSE'] = crashes_prime_cause['PRIM_CONTRIBUTORY_CAUSE'].replace(to_replace = group, value = value)
+print('binned target feature successfully')
 
 # Fill and drop NaNs
 
@@ -61,7 +69,7 @@ crashes_prime_cause_filled = crashes_prime_cause.fillna({'INTERSECTION_RELATED_I
 
 crashes_prime_cause_filled = crashes_prime_cause_filled.dropna(subset=['LATITUDE', 'LONGITUDE', 'INJURIES_TOTAL', 'INJURIES_FATAL',
                                                                        'MOST_SEVERE_INJURY'])
-
+print('dropped NaNs successfully')
 # Clustering locations (latitude and longitude) into 30 'neighborhoods'
 
 n_clusters = 30  # Number of clusters to create
@@ -70,10 +78,10 @@ X = crashes_prime_cause_filled[['LONGITUDE', 'LATITUDE']]
 # Create a K-Means clustering model
 kmeans = KMeans(n_clusters=n_clusters, random_state=0)
 kmeans.fit(X)
-
 # Add cluster labels to your data
 cluster_labels = kmeans.labels_
 crashes_prime_cause_filled['GEO_KMEANS_Cluster'] = cluster_labels
+print('locations clusters added')
 
 # Drop columns
 
@@ -81,9 +89,10 @@ crashes_prime_cause_filled = crashes_prime_cause_filled.drop(columns = ['CRASH_D
                                                                         'STREET_NO', 'STREET_DIRECTION', 'STREET_NAME','BEAT_OF_OCCURRENCE', 'PHOTOS_TAKEN_I',
                                                                         'STATEMENTS_TAKEN_I', 'DOORING_I', 'WORK_ZONE_I', 'WORK_ZONE_TYPE', 'WORKERS_PRESENT_I',
                                                                         'INJURIES_INCAPACITATING', 'INJURIES_NON_INCAPACITATING', 'INJURIES_NO_INDICATION',
-                                                                        'INJURIES_UNKNOWN', 'LOCATION', 'LANE_CNT', 'CRASH_DATE',
+                                                                        'INJURIES_UNKNOWN', 'LOCATION', 'CRASH_DATE',
                                                                         'INJURIES_REPORTED_NOT_EVIDENT', 'TRAFFIC_CONTROL_DEVICE', 'INJURIES_TOTAL',
                                                                         'INJURIES_FATAL'])
+print('LANE_CNT column not available from API')
 
 # One-hot encoding or label encoding relevant features
 crashes_cleaned = pd.get_dummies(crashes_prime_cause_filled,
@@ -95,8 +104,11 @@ crashes_cleaned = pd.get_dummies(crashes_prime_cause_filled,
 
 le = LabelEncoder()
 
-for col in ['CRASH_TYPE','INTERSECTION_RELATED_I', 'NOT_RIGHT_OF_WAY_I', 'HIT_AND_RUN_I', 'DAMAGE']:
+for col in ['CRASH_TYPE','INTERSECTION_RELATED_I',  'HIT_AND_RUN_I', 'DAMAGE']:
     crashes_cleaned[col] = le.fit_transform(crashes_cleaned[col])
 
+print('NOT_RIGHT_OF_WAY_I column, not available from API')
+
 # Exporting processed dataset to be used in our classification model
-crashes_cleaned.to_csv('../data/latest_data.csv')
+crashes_cleaned.to_csv('data/latest_data.csv')
+print('RAN SUCCESSFULLY!!!')
